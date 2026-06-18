@@ -4,7 +4,7 @@ const PORT = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Hello from Harness CI! Trigger worked!',
+    message: 'Hello from Harness CI! Trigger worked!,testing dignostic step',
     timestamp: new Date().toISOString()
   });
 });

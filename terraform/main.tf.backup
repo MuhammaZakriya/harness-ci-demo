@@ -1,4 +1,4 @@
-﻿# VPC
+# VPC
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -12,10 +12,6 @@ resource "aws_internet_gateway" "main" {
 # Public Subnets
 data "aws_availability_zones" "available" {
   state = "available"
-}
-
-locals {
-  name_prefix = "${var.app_name}-${var.environment}"
 }
 
 resource "aws_subnet" "public" {
@@ -42,7 +38,7 @@ resource "aws_route_table_association" "public" {
 
 # Security Group: ALB (inbound 80 from internet)
 resource "aws_security_group" "alb" {
-  name_prefix = "${local.name_prefix}-alb-sg"
+  name_prefix = "${var.app_name}-alb-sg"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -62,7 +58,7 @@ resource "aws_security_group" "alb" {
 
 # Security Group: ECS tasks (inbound 3000 only from ALB)
 resource "aws_security_group" "task" {
-  name_prefix = "${local.name_prefix}-task-sg"
+  name_prefix = "${var.app_name}-task-sg"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -82,7 +78,7 @@ resource "aws_security_group" "task" {
 
 # ALB
 resource "aws_lb" "app" {
-  name               = "${local.name_prefix}-alb"
+  name               = "${var.app_name}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
@@ -90,7 +86,7 @@ resource "aws_lb" "app" {
 }
 
 resource "aws_lb_target_group" "app" {
-  name        = "${local.name_prefix}-tg"
+  name        = "${var.app_name}-tg"
   port        = 3000
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
@@ -119,7 +115,7 @@ resource "aws_lb_listener" "app" {
 
 # IAM
 resource "aws_iam_role" "ecs_execution" {
-  name = "${local.name_prefix}-ecs-execution"
+  name = "${var.app_name}-ecs-execution"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -137,11 +133,11 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
 
 # ECS
 resource "aws_ecs_cluster" "app" {
-  name = "${local.name_prefix}-cluster"
+  name = "${var.app_name}-cluster"
 }
 
 resource "aws_ecs_task_definition" "app" {
-  family                   = local.name_prefix
+  family                   = var.app_name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
@@ -149,7 +145,7 @@ resource "aws_ecs_task_definition" "app" {
   execution_role_arn       = aws_iam_role.ecs_execution.arn
 
   container_definitions = jsonencode([{
-    name  = local.name_prefix
+    name  = var.app_name
     image = "${var.dockerhub_username}/${var.app_name}:${var.image_tag}"
     portMappings = [{
       containerPort = 3000
@@ -161,7 +157,7 @@ resource "aws_ecs_task_definition" "app" {
 }
 
 resource "aws_ecs_service" "app" {
-  name            = "${local.name_prefix}-service"
+  name            = "${var.app_name}-service"
   cluster         = aws_ecs_cluster.app.id
   task_definition = aws_ecs_task_definition.app.arn
   desired_count   = 1
@@ -170,12 +166,12 @@ resource "aws_ecs_service" "app" {
   network_configuration {
     subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.task.id]
-    assign_public_ip = true  # DEMO ONLY  remove in production
+    assign_public_ip = true  # DEMO ONLY — remove in production
   }
 
   load_balancer {
     target_group_arn = aws_lb_target_group.app.arn
-    container_name   = local.name_prefix
+    container_name   = var.app_name
     container_port   = 3000
   }
 

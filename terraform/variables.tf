@@ -1,5 +1,13 @@
 variable "aws_region" {
-  default = "us-east-1"
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+  default     = "dev"
 }
 
 variable "image_tag" {
@@ -8,9 +16,13 @@ variable "image_tag" {
 }
 
 variable "app_name" {
-  default = "harness-ci-demo"
+  description = "Application name"
+  type        = string
+  default     = "harness-ci-demo"
 }
 
 variable "dockerhub_username" {
-  default = "zakria123"
+  description = "Docker Hub username"
+  type        = string
+  default     = "zakria123"
 }

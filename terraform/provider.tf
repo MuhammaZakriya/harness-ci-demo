@@ -8,10 +8,10 @@ terraform {
 
   backend "s3" {
     bucket         = "harness-terraform-state-zakria123"
-    key            = "harness-ci-demo/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "terraform-locks"
     encrypt        = true
+    # key is passed via -backend-config in pipeline
   }
 
   required_version = ">= 1.0"
@@ -19,4 +19,12 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+
+  default_tags {
+    tags = {
+      Environment = var.environment
+      Application = var.app_name
+      ManagedBy   = "terraform"
+    }
+  }
 }
